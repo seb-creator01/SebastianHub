@@ -61,3 +61,50 @@ button {
 .price { color: #25D366; font-weight: bold; }
 .wa-link { display: block; text-decoration: none; background: #25D366; color: white; padding: 8px; border-radius: 5px; font-size: 12px; margin-top: 10px; }
 .report-btn { background: none; border: none; color: red; text-decoration: underline; margin-top: 30px; font-size: 12px; cursor: pointer; }
+
+/* --- NEW UPDATED STYLES ADDED BELOW --- */
+
+/* 1. Loading Spinner Animation */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #25D366;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 2. Seller Product Management Buttons */
+.btn-edit {
+    background-color: #3498db !important;
+    font-size: 14px !important;
+    padding: 8px !important;
+    margin-bottom: 5px;
+}
+
+.btn-delete {
+    background-color: #e74c3c !important;
+    font-size: 14px !important;
+    padding: 8px !important;
+}
+
+/* 3. Modal (Pop-up) Styling for store.html */
+#product-modal .card {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* 4. Textarea styling for descriptions */
+textarea {
+    font-family: inherit;
+    resize: none;
+}
