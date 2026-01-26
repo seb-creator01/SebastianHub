@@ -30,19 +30,28 @@
                     <input type="password" id="password" placeholder="Password (min 6 chars)">
                 </div>
 
+                <div id="terms-container" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 13px; text-align: left; color: #555;">
+                    <input type="checkbox" id="terms-checkbox" style="width: auto; margin: 0;">
+                    <span>I agree to the <a href="terms.html" style="color: #25D366; text-decoration: underline;">Terms & Conditions</a></span>
+                </div>
+
                 <button id="auth-btn" onclick="handleAuth()">Sign Up</button>
                 
-                <p style="margin-top: 15px; font-size: 13px; text-align: center;">
+                <div style="margin-top: 15px; font-size: 13px; text-align: center; display: flex; justify-content: center; gap: 20px;">
                     <a href="#" onclick="forgotPassword()" style="color: #666; text-decoration: none;">Forgot Password?</a>
-                </p>
+                    <a href="#" onclick="resendVerification()" style="color: #25D366; text-decoration: none; font-weight: bold;">Resend Email?</a>
+                </div>
                 
-                <p id="toggle-text" onclick="toggleAuth()">
+                <p id="toggle-text" onclick="toggleAuth()" style="margin-top: 20px;">
                     Already a seller? <strong>Login here</strong>
                 </p>
             </div>
         </main>
 
         <footer>
+            <div style="margin-bottom: 15px; font-size: 12px; color: #888;">
+                Need help? <a href="https://wa.me/2348053103234" target="_blank" style="color: #25D366; text-decoration: none; font-weight: bold;">Contact Support on WhatsApp</a>
+            </div>
             <p>&copy; 2026 SebastianHub</p>
         </footer>
     </div>
