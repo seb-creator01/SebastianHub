@@ -1,5 +1,4 @@
 // 1. YOUR FIREBASE CONFIGURATION
-// Replace the values below with your actual keys from Firebase Console
 const firebaseConfig = {
   apiKey: "AIzaSyA30CbfejxYBs_KLgiw1OhqFbvQiHUbQGQ",
   authDomain: "sebastianhub-e3407.firebaseapp.com",
@@ -13,6 +12,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// --- CLOUDINARY CONFIG (REPLACE THESE WITH YOUR ACTUAL CLOUDINARY INFO) ---
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload";
+const CLOUDINARY_UPLOAD_PRESET = "YOUR_UNSIGNED_PRESET_NAME";
 
 // 3. TOGGLE BETWEEN LOGIN AND SIGNUP
 let isLoginMode = false;
@@ -45,17 +48,13 @@ async function handleAuth() {
 
     try {
         if (isLoginMode) {
-            // Login existing user
             await auth.signInWithEmailAndPassword(email, password);
             alert("Welcome back!");
         } else {
-            // Register new user
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            // Security: Send email verification
             await userCredential.user.sendEmailVerification();
             alert("Account created! Check your email to verify your account.");
         }
-        // Move to the dashboard after success
         window.location.href = "dashboard.html";
     } catch (error) {
         alert("Error: " + error.message);
@@ -63,15 +62,23 @@ async function handleAuth() {
 }
 
 // 5. PROTECT THE DASHBOARD
-// This checks if a user is logged in. If they are, it keeps them logged in.
 auth.onAuthStateChanged((user) => {
-    if (user && window.location.pathname.includes("index.html")) {
-        window.location.href = "dashboard.html";
+    if (user) {
+        if (window.location.pathname.includes("index.html")) {
+            window.location.href = "dashboard.html";
+        }
+        if (window.location.pathname.includes("dashboard.html")) {
+            checkStoreExists(user);
+        }
+    } else {
+        if (window.location.pathname.includes("dashboard.html")) {
+            window.location.href = "index.html";
+        }
     }
 });
+
 // --- DASHBOARD LOGIC ---
 
-// 1. Function to turn "Sebastian Hub" into "sebastian-hub"
 function generateSlug(text) {
     return text.toLowerCase()
                .trim()
@@ -80,7 +87,6 @@ function generateSlug(text) {
                .replace(/^-+|-+$/g, '');
 }
 
-// 2. Save Store Settings
 async function saveStoreSettings() {
     const user = auth.currentUser;
     const bizName = document.getElementById('biz-name').value;
@@ -98,16 +104,14 @@ async function saveStoreSettings() {
             createdAt: new Date()
         });
         alert("Store setup complete!");
-        checkStoreExists(user); // Refresh the UI
+        checkStoreExists(user);
     } catch (error) {
         alert(error.message);
     }
 }
 
-// 3. Check if user already has a store
 async function checkStoreExists(user) {
     if (!user) return;
-    
     const storeRef = db.collection("stores").doc(user.uid);
     const doc = await storeRef.get();
 
@@ -115,34 +119,109 @@ async function checkStoreExists(user) {
         const data = doc.data();
         document.getElementById('setup-section').style.display = 'none';
         document.getElementById('manage-section').style.display = 'block';
-        
-        // Generate the Public Link
-        const publicLink = window.location.origin + "/store.html?slug=" + data.slug;
+        const publicLink = window.location.origin + window.location.pathname.replace("dashboard.html", "store.html") + "?slug=" + data.slug;
         document.getElementById('store-url').innerText = publicLink;
+        loadSellerProducts(data.slug); // Load products for the dashboard list
     }
 }
 
-// 4. Update the Auth Listener
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        if (window.location.pathname.includes("dashboard.html")) {
-            checkStoreExists(user);
+// --- NEW UPDATED LOGIC (IMAGE UPLOAD, EDIT, DELETE, LOADER) ---
+
+function toggleLoader(show) {
+    const loader = document.getElementById('loader');
+    if(loader) loader.style.display = show ? 'flex' : 'none';
+}
+
+async function handleProductUpload() {
+    const file = document.getElementById('p-image').files[0];
+    const name = document.getElementById('p-name').value;
+    const price = document.getElementById('p-price').value;
+    const desc = document.getElementById('p-desc').value;
+    const editId = document.getElementById('edit-id').value;
+
+    if (!name || !price) return alert("Fill name and price!");
+
+    toggleLoader(true);
+
+    try {
+        let imageUrl = "";
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+            const data = await res.json();
+            imageUrl = data.secure_url;
         }
-    } else {
-        if (window.location.pathname.includes("dashboard.html")) {
-            window.location.href = "index.html";
+
+        const user = auth.currentUser;
+        const storeDoc = await db.collection("stores").doc(user.uid).get();
+        const storeData = storeDoc.data();
+
+        const productData = {
+            name, price, description: desc,
+            storeSlug: storeData.slug,
+            ownerId: user.uid,
+            updatedAt: new Date()
+        };
+        if (imageUrl) productData.image = imageUrl;
+
+        if (editId) {
+            await db.collection("products").doc(editId).update(productData);
+            alert("Updated Successfully!");
+        } else {
+            if(!imageUrl) { toggleLoader(false); return alert("Please select an image for new products"); }
+            productData.createdAt = new Date();
+            await db.collection("products").add(productData);
+            alert("Uploaded Successfully!");
         }
+        location.reload();
+    } catch (e) { alert(e.message); toggleLoader(false); }
+}
+
+async function loadSellerProducts(slug) {
+    const list = document.getElementById('seller-product-list');
+    if(!list) return;
+    const snapshot = await db.collection("products").where("storeSlug", "==", slug).get();
+    list.innerHTML = "";
+    snapshot.forEach(doc => {
+        const p = doc.data();
+        const div = document.createElement('div');
+        div.style = "border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+        div.innerHTML = `
+            <div><strong>${p.name}</strong><br>₦${p.price}</div>
+            <div>
+                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}')" style="background:#3498db; width:auto; padding:5px 10px; margin-right:5px;">Edit</button>
+                <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 10px;">Delete</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function editForm(id, name, price, desc) {
+    document.getElementById('edit-id').value = id;
+    document.getElementById('p-name').value = name;
+    document.getElementById('p-price').value = price;
+    document.getElementById('p-desc').value = desc;
+    document.getElementById('upload-btn').innerText = "Save Changes";
+    window.scrollTo(0,0);
+}
+
+async function deleteProduct(id) {
+    if (confirm("Are you sure you want to delete this product?")) {
+        await db.collection("products").doc(id).delete();
+        location.reload();
     }
-});
+}
+
 // --- PUBLIC STORE VIEW LOGIC ---
 
 async function loadPublicStore() {
     const urlParams = new URLSearchParams(window.location.search);
     const slug = urlParams.get('slug');
-
     if (!slug) return;
 
-    // 1. Get Store Info (WhatsApp number & Name)
     const storeQuery = await db.collection("stores").where("slug", "==", slug).get();
     if (storeQuery.empty) {
         document.body.innerHTML = "<h1>Store not found</h1>";
@@ -153,7 +232,6 @@ async function loadPublicStore() {
     document.getElementById('display-store-name').innerText = storeData.storeName;
     document.title = storeData.storeName + " - SebastianHub";
 
-    // 2. Load Products for this store
     const productQuery = await db.collection("products").where("storeSlug", "==", slug).get();
     const list = document.getElementById('product-list');
 
@@ -162,18 +240,29 @@ async function loadPublicStore() {
         const card = document.createElement('div');
         card.className = "product-card";
         card.innerHTML = `
-            <img src="${p.image}" alt="${p.name}">
+            <img src="${p.image}" alt="${p.name}" onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')">
             <h3>${p.name}</h3>
             <p class="price">₦${p.price}</p>
-            <a href="https://wa.me/${storeData.whatsapp}?text=Hello, I am interested in ${p.name} from your SebastianHub store" class="wa-link">
-                Order on WhatsApp
-            </a>
+            <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px;">View Details</button>
+            <a href="https://wa.me/${storeData.whatsapp}?text=Hello, I am interested in ${p.name}" class="wa-link">Order on WhatsApp</a>
         `;
         list.appendChild(card);
     });
 }
 
-// Check if we are on the store page
+function openModal(name, price, desc, img, phone) {
+    document.getElementById('modal-name').innerText = name;
+    document.getElementById('modal-price').innerText = "₦" + price;
+    document.getElementById('modal-desc').innerText = desc || "No description provided.";
+    document.getElementById('modal-img').src = img;
+    document.getElementById('modal-wa-btn').href = `https://wa.me/${phone}?text=Hello, I'm interested in ${name}`;
+    document.getElementById('product-modal').style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById('product-modal').style.display = "none";
+}
+
 if (window.location.pathname.includes("store.html")) {
     loadPublicStore();
 }
