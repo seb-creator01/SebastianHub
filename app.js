@@ -37,7 +37,7 @@ function toggleAuth() {
     }
 }
 
-// 4. HANDLE SIGNUP AND LOGIN
+// 4. HANDLE SIGNUP AND LOGIN (UPDATED FOR VERIFICATION)
 async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -48,12 +48,22 @@ async function handleAuth() {
 
     try {
         if (isLoginMode) {
-            await auth.signInWithEmailAndPassword(email, password);
+            const userCredential = await auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            if (!user.emailVerified) {
+                alert("Please verify your email before logging in. Check your inbox.");
+                await auth.signOut();
+                return;
+            }
             alert("Welcome back!");
         } else {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             await userCredential.user.sendEmailVerification();
-            alert("Account created! Check your email to verify your account.");
+            alert("Account created! Please check your email and click the verification link before logging in.");
+            await auth.signOut();
+            location.reload();
+            return;
         }
         window.location.href = "dashboard.html";
     } catch (error) {
@@ -61,9 +71,46 @@ async function handleAuth() {
     }
 }
 
-// 5. PROTECT THE DASHBOARD
+// --- NEW: PASSWORD RESET & RESEND VERIFICATION ---
+async function forgotPassword() {
+    const email = document.getElementById('email').value;
+    if (!email) return alert("Please enter your email address first.");
+    try {
+        await auth.sendPasswordResetEmail(email);
+        alert("Password reset link sent to your email!");
+    } catch (error) {
+        alert("Error: " + error.message);
+    }
+}
+
+async function resendVerification() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) return alert("Enter email and password to resend link.");
+
+    try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        await userCredential.user.sendEmailVerification();
+        alert("Verification email resent!");
+        await auth.signOut();
+    } catch (error) {
+        alert("Error: " + error.message);
+    }
+}
+
+// 5. PROTECT THE DASHBOARD (UPDATED GATEKEEPER)
 auth.onAuthStateChanged((user) => {
     if (user) {
+        if (!user.emailVerified) {
+            // Force logout if they try to bypass verification
+            auth.signOut();
+            if (!window.location.pathname.includes("index.html")) {
+                window.location.href = "index.html";
+            }
+            return;
+        }
+
         if (window.location.pathname.includes("index.html") || window.location.pathname === "/") {
             window.location.href = "dashboard.html";
         }
@@ -71,7 +118,7 @@ auth.onAuthStateChanged((user) => {
             checkStoreExists(user);
         }
     } else {
-        if (window.location.pathname.includes("dashboard.html")) {
+        if (window.location.pathname.includes("dashboard.html") || window.location.pathname.includes("admin.html")) {
             window.location.href = "index.html";
         }
     }
