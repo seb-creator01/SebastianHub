@@ -234,6 +234,14 @@ async function loadPublicStore() {
     document.getElementById('display-store-name').innerText = storeData.storeName;
     document.title = storeData.storeName + " - SebastianHub";
 
+    // Update verified badge UI if store is verified
+    const badge = document.getElementById('badge');
+    if (badge && storeData.isVerified) {
+        badge.innerText = "Verified Seller ✅";
+        badge.className = "badge-verified"; // You can style this in CSS
+        badge.style.background = "#25D366";
+    }
+
     const productQuery = await db.collection("products").where("storeSlug", "==", slug).get();
     const list = document.getElementById('product-list');
 
@@ -269,8 +277,26 @@ if (window.location.pathname.includes("store.html")) {
     loadPublicStore();
 }
 
-function reportStore() {
-    alert("This store has been flagged for review. Thank you for keeping SebastianHub safe.");
+// --- UPDATED REPORT LOGIC ---
+async function reportStore() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const slug = urlParams.get('slug');
+
+    if (!slug) return;
+
+    if (confirm("Are you sure you want to report this store for suspicious activity?")) {
+        try {
+            await db.collection("reports").add({
+                flaggedStore: slug,
+                reportedAt: new Date(),
+                status: "pending_review"
+            });
+            alert("This store has been flagged for review. Thank you for keeping SebastianHub safe.");
+        } catch (error) {
+            console.error("Error reporting store: ", error);
+            alert("Report could not be sent. Please try again later.");
+        }
+    }
 }
 
 function copyStoreLink() {
