@@ -25,22 +25,31 @@ function toggleAuth() {
     const title = document.getElementById('auth-title');
     const btn = document.getElementById('auth-btn');
     const toggle = document.getElementById('toggle-text');
+    const terms = document.getElementById('terms-container'); // NEW: Get the terms container
 
     if (isLoginMode) {
         title.innerText = "Login to Store";
         btn.innerText = "Login";
         toggle.innerHTML = "New seller? <strong>Create account</strong>";
+        if(terms) terms.style.display = "none"; // Hide checkbox on login
     } else {
         title.innerText = "Create Store Account";
         btn.innerText = "Sign Up";
         toggle.innerHTML = "Already a seller? <strong>Login here</strong>";
+        if(terms) terms.style.display = "flex"; // Show checkbox on signup
     }
 }
 
-// 4. HANDLE SIGNUP AND LOGIN (UPDATED FOR VERIFICATION)
+// 4. HANDLE SIGNUP AND LOGIN (UPDATED FOR VERIFICATION AND TERMS)
 async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    const termsCheckbox = document.getElementById('terms-checkbox');
+
+    // NEW: Check if terms are accepted only during Sign Up
+    if (!isLoginMode && termsCheckbox && !termsCheckbox.checked) {
+        return alert("You must agree to the Terms & Conditions to create a store.");
+    }
 
     if (!email || !password) {
         return alert("Please fill in all fields.");
@@ -203,7 +212,7 @@ async function handleProductUpload() {
         if (file) {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('upload_preset', CLONYDINARY_UPLOAD_PRESET);
             const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
             const data = await res.json();
             imageUrl = data.secure_url;
