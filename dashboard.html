@@ -14,6 +14,10 @@
 <body>
 
     <div class="app-container">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <button id="dark-mode-toggle" onclick="toggleDarkMode()" style="width: auto; padding: 8px 15px; font-size: 12px; background: #666; border-radius: 20px;">🌙 Dark Mode</button>
+        </div>
+
         <nav style="display: flex; justify-content: space-between; align-items: center;">
             <h2>SebastianHub</h2>
             <button onclick="auth.signOut()" style="width: auto; padding: 5px 10px; background: #ff4444;">Logout</button>
@@ -44,6 +48,17 @@
             
             <input type="text" id="p-name" placeholder="Product Name">
             <input type="number" id="p-price" placeholder="Price (₦)">
+            
+            <select id="p-category">
+                <option value="" disabled selected>Select Category 🏷️</option>
+                <option value="Electronics">📱 Electronics & Gadgets</option>
+                <option value="Fashion">👗 Fashion & Accessories</option>
+                <option value="Beauty">✨ Health & Beauty</option>
+                <option value="Food">🍔 Food & Groceries</option>
+                <option value="Home">🏠 Home & Kitchen</option>
+                <option value="Services">🛠️ Services</option>
+                <option value="Others">📦 Others</option>
+            </select>
             
             <textarea id="p-desc" placeholder="Product Description (e.g. size, color, condition)" rows="3" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px; font-family:inherit;"></textarea>
             
