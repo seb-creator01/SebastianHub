@@ -212,7 +212,7 @@ async function handleProductUpload() {
         if (file) {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('upload_preset', CLONYDINARY_UPLOAD_PRESET);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
             const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
             const data = await res.json();
             imageUrl = data.secure_url;
@@ -440,3 +440,25 @@ if (window.location.pathname.includes("admin.html")) {
         if (user) loadMasterList();
     });
 }
+
+// --- NEW UPDATE: DARK MODE LOGIC ---
+
+function toggleDarkMode() {
+    const body = document.body;
+    const btn = document.getElementById('dark-mode-toggle');
+    
+    body.classList.toggle('dark-mode');
+    
+    const isDark = body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    if (btn) btn.innerText = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
+}
+
+// Initialize theme on load
+document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        const btn = document.getElementById('dark-mode-toggle');
+        if (btn) btn.innerText = "☀️ Light Mode";
+    }
+});
