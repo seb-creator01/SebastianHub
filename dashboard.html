@@ -1,1 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SebastianHub - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <nav style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>SebastianHub</h2>
+            <button onclick="auth.signOut()" style="width: auto; padding: 5px 10px; background: #ff4444;">Logout</button>
+        </nav>
+
+        <section id="setup-section" class="card" style="margin-top: 20px;">
+            <h3>Step 1: Setup Your Store</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">This creates your unique link.</p>
+            <input type="text" id="biz-name" placeholder="Business Name (e.g., Sebastian Hub)">
+            <input type="tel" id="biz-phone" placeholder="WhatsApp Number (e.g., 23480...)">
+            <button onclick="saveStoreSettings()">Create Store Link</button>
+        </section>
+
+        <section id="manage-section" class="card" style="margin-top: 20px; display: none;">
+            <h3>Your Store Link:</h3>
+            <p id="store-url" style="color: blue; word-break: break-all; margin-bottom: 15px;"></p>
+            
+            <hr style="margin: 20px 0;">
+            
+            <h3>Add a Product</h3>
+            <input type="text" id="p-name" placeholder="Product Name">
+            <input type="number" id="p-price" placeholder="Price (₦)">
+            <input type="file" id="p-image" accept="image/*">
+            <button id="upload-btn" onclick="handleProductUpload()">Upload Product</button>
+        </section>
+    </div>
+
+</body>
+</html>
 
