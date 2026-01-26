@@ -1,1 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SebastianHub - WhatsApp Marketplace</title>
+    
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script src="app.js" defer></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>SebastianHub</h1>
+            <p>Your local marketplace. Sell on WhatsApp.</p>
+        </header>
+
+        <main id="auth-section">
+            <div class="card">
+                <h2 id="auth-title">Create Store Account</h2>
+                
+                <div class="input-group">
+                    <input type="email" id="email" placeholder="Email Address">
+                    <input type="password" id="password" placeholder="Password (min 6 chars)">
+                </div>
+
+                <button id="auth-btn" onclick="handleAuth()">Sign Up</button>
+                
+                <p id="toggle-text" onclick="toggleAuth()">
+                    Already a seller? <strong>Login here</strong>
+                </p>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 SebastianHub</p>
+        </footer>
+    </div>
+
+</body>
+</html>
 
