@@ -201,6 +201,7 @@ async function handleProductUpload() {
     const name = document.getElementById('p-name').value;
     const price = document.getElementById('p-price').value;
     const desc = document.getElementById('p-desc').value;
+    const category = document.getElementById('p-category').value; // NEW
     const editId = document.getElementById('edit-id').value;
 
     if (!name || !price) return alert("Fill name and price!");
@@ -224,6 +225,7 @@ async function handleProductUpload() {
 
         const productData = {
             name, price, description: desc,
+            category: category, // NEW
             storeSlug: storeData.slug,
             ownerId: user.uid,
             updatedAt: new Date()
@@ -253,9 +255,9 @@ async function loadSellerProducts(slug) {
         const div = document.createElement('div');
         div.style = "border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:white;";
         div.innerHTML = `
-            <div><strong>${p.name}</strong><br>₦${p.price}</div>
+            <div><strong>${p.name}</strong><br>₦${p.price} | ${p.category || 'No Category'}</div>
             <div>
-                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}')" style="background:#3498db; width:auto; padding:5px 10px; margin-right:5px; font-size:12px;">Edit</button>
+                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}', '${p.category || ''}')" style="background:#3498db; width:auto; padding:5px 10px; margin-right:5px; font-size:12px;">Edit</button>
                 <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 10px; font-size:12px;">Delete</button>
             </div>
         `;
@@ -263,11 +265,12 @@ async function loadSellerProducts(slug) {
     });
 }
 
-function editForm(id, name, price, desc) {
+function editForm(id, name, price, desc, category) { // UPDATED
     document.getElementById('edit-id').value = id;
     document.getElementById('p-name').value = name;
     document.getElementById('p-price').value = price;
     document.getElementById('p-desc').value = desc;
+    document.getElementById('p-category').value = category || ""; // NEW
     document.getElementById('upload-btn').innerText = "Save Changes";
     window.scrollTo(0,0);
 }
