@@ -13,9 +13,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- CLOUDINARY CONFIG (REPLACE THESE WITH YOUR ACTUAL CLOUDINARY INFO) ---
-const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload";
-const CLOUDINARY_UPLOAD_PRESET = "YOUR_UNSIGNED_PRESET_NAME";
+// --- CLOUDINARY CONFIG (UPDATED WITH YOUR REAL KEYS) ---
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwsc9eumf/image/upload";
+const CLOUDINARY_UPLOAD_PRESET = "sebastian_preset";
 
 // 3. TOGGLE BETWEEN LOGIN AND SIGNUP
 let isLoginMode = false;
@@ -64,7 +64,7 @@ async function handleAuth() {
 // 5. PROTECT THE DASHBOARD
 auth.onAuthStateChanged((user) => {
     if (user) {
-        if (window.location.pathname.includes("index.html")) {
+        if (window.location.pathname.includes("index.html") || window.location.pathname === "/") {
             window.location.href = "dashboard.html";
         }
         if (window.location.pathname.includes("dashboard.html")) {
@@ -119,9 +119,11 @@ async function checkStoreExists(user) {
         const data = doc.data();
         document.getElementById('setup-section').style.display = 'none';
         document.getElementById('manage-section').style.display = 'block';
+        
+        // Dynamic link generation for GitHub Pages
         const publicLink = window.location.origin + window.location.pathname.replace("dashboard.html", "store.html") + "?slug=" + data.slug;
         document.getElementById('store-url').innerText = publicLink;
-        loadSellerProducts(data.slug); // Load products for the dashboard list
+        loadSellerProducts(data.slug); 
     }
 }
 
@@ -187,12 +189,12 @@ async function loadSellerProducts(slug) {
     snapshot.forEach(doc => {
         const p = doc.data();
         const div = document.createElement('div');
-        div.style = "border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+        div.style = "border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:white;";
         div.innerHTML = `
             <div><strong>${p.name}</strong><br>₦${p.price}</div>
             <div>
-                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}')" style="background:#3498db; width:auto; padding:5px 10px; margin-right:5px;">Edit</button>
-                <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 10px;">Delete</button>
+                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}')" style="background:#3498db; width:auto; padding:5px 10px; margin-right:5px; font-size:12px;">Edit</button>
+                <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 10px; font-size:12px;">Delete</button>
             </div>
         `;
         list.appendChild(div);
@@ -243,7 +245,7 @@ async function loadPublicStore() {
             <img src="${p.image}" alt="${p.name}" onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')">
             <h3>${p.name}</h3>
             <p class="price">₦${p.price}</p>
-            <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px;">View Details</button>
+            <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
             <a href="https://wa.me/${storeData.whatsapp}?text=Hello, I am interested in ${p.name}" class="wa-link">Order on WhatsApp</a>
         `;
         list.appendChild(card);
