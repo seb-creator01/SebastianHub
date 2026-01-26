@@ -282,7 +282,9 @@ async function deleteProduct(id) {
     }
 }
 
-// --- PUBLIC STORE VIEW LOGIC ---
+// --- PUBLIC STORE VIEW LOGIC (UPDATED WITH SEARCH & FILTER) ---
+
+let allProducts = []; // Global variable to store all products for local filtering
 
 async function loadPublicStore() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -303,26 +305,57 @@ async function loadPublicStore() {
     const badge = document.getElementById('badge');
     if (badge && storeData.isVerified) {
         badge.innerText = "Verified Seller ✅";
-        badge.className = "badge-verified"; // You can style this in CSS
+        badge.className = "badge-verified"; 
         badge.style.background = "#25D366";
     }
 
     const productQuery = await db.collection("products").where("storeSlug", "==", slug).get();
-    const list = document.getElementById('product-list');
-
+    
+    allProducts = []; // Clear array
     productQuery.forEach(doc => {
-        const p = doc.data();
+        allProducts.push({ id: doc.id, ...doc.data(), whatsapp: storeData.whatsapp });
+    });
+
+    renderProducts(allProducts); // Initial render
+}
+
+// Function to render the product grid
+function renderProducts(products) {
+    const list = document.getElementById('product-list');
+    if(!list) return;
+    list.innerHTML = "";
+
+    if (products.length === 0) {
+        list.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding: 20px; color:#888;'>No products found matching your search.</p>";
+        return;
+    }
+
+    products.forEach(p => {
         const card = document.createElement('div');
         card.className = "product-card";
         card.innerHTML = `
-            <img src="${p.image}" alt="${p.name}" onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')">
+            <img src="${p.image}" alt="${p.name}" onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')">
             <h3>${p.name}</h3>
             <p class="price">₦${p.price}</p>
-            <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${storeData.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
-            <a href="https://wa.me/${storeData.whatsapp}?text=Hello, I am interested in ${p.name}" class="wa-link">Order on WhatsApp</a>
+            <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
+            <a href="https://wa.me/${p.whatsapp}?text=Hello, I am interested in ${p.name}" class="wa-link">Order on WhatsApp</a>
         `;
         list.appendChild(card);
     });
+}
+
+// Function to filter products based on search input and category selection
+function filterProducts() {
+    const searchQuery = document.getElementById('search-input').value.toLowerCase();
+    const categoryQuery = document.getElementById('filter-category').value;
+
+    const filtered = allProducts.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery);
+        const matchesCategory = categoryQuery === "" || p.category === categoryQuery;
+        return matchesSearch && matchesCategory;
+    });
+
+    renderProducts(filtered);
 }
 
 function openModal(name, price, desc, img, phone) {
