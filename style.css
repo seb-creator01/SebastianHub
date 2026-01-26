@@ -51,3 +51,13 @@ button {
     cursor: pointer;
 }
 
+.badge-new { background: #ff9800; color: white; padding: 5px; border-radius: 5px; display: inline-block; font-size: 12px; margin-top: 5px; }
+.warning-box { background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; font-size: 13px; margin: 15px 0; border: 1px solid #ffeeba; }
+
+.grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+.product-card { background: white; padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.product-card img { width: 100%; border-radius: 8px; height: 150px; object-fit: cover; }
+.product-card h3 { font-size: 14px; margin: 10px 0 5px; }
+.price { color: #25D366; font-weight: bold; }
+.wa-link { display: block; text-decoration: none; background: #25D366; color: white; padding: 8px; border-radius: 5px; font-size: 12px; margin-top: 10px; }
+.report-btn { background: none; border: none; color: red; text-decoration: underline; margin-top: 30px; font-size: 12px; cursor: pointer; }
