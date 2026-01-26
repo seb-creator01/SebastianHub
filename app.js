@@ -134,4 +134,51 @@ auth.onAuthStateChanged((user) => {
         }
     }
 });
+// --- PUBLIC STORE VIEW LOGIC ---
+
+async function loadPublicStore() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const slug = urlParams.get('slug');
+
+    if (!slug) return;
+
+    // 1. Get Store Info (WhatsApp number & Name)
+    const storeQuery = await db.collection("stores").where("slug", "==", slug).get();
+    if (storeQuery.empty) {
+        document.body.innerHTML = "<h1>Store not found</h1>";
+        return;
+    }
+    
+    const storeData = storeQuery.docs[0].data();
+    document.getElementById('display-store-name').innerText = storeData.storeName;
+    document.title = storeData.storeName + " - SebastianHub";
+
+    // 2. Load Products for this store
+    const productQuery = await db.collection("products").where("storeSlug", "==", slug).get();
+    const list = document.getElementById('product-list');
+
+    productQuery.forEach(doc => {
+        const p = doc.data();
+        const card = document.createElement('div');
+        card.className = "product-card";
+        card.innerHTML = `
+            <img src="${p.image}" alt="${p.name}">
+            <h3>${p.name}</h3>
+            <p class="price">₦${p.price}</p>
+            <a href="https://wa.me/${storeData.whatsapp}?text=Hello, I am interested in ${p.name} from your SebastianHub store" class="wa-link">
+                Order on WhatsApp
+            </a>
+        `;
+        list.appendChild(card);
+    });
+}
+
+// Check if we are on the store page
+if (window.location.pathname.includes("store.html")) {
+    loadPublicStore();
+}
+
+function reportStore() {
+    alert("This store has been flagged for review. Thank you for keeping SebastianHub safe.");
+}
 
