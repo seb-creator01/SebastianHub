@@ -18,6 +18,18 @@
             <div id="badge" class="badge-new">New Seller</div>
         </header>
 
+        <div class="card" style="margin-bottom: 20px; padding: 15px;">
+            <input type="text" id="search-input" placeholder="Search products..." oninput="filterProducts()" style="margin-bottom: 10px;">
+            <select id="filter-category" onchange="filterProducts()">
+                <option value="">All Categories</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Health/Beauty">Health/Beauty</option>
+                <option value="Others">Others</option>
+            </select>
+        </div>
+
         <div class="warning-box">
             ⚠️ <strong>Safety Tip:</strong> Always verify the seller before making any payments. Sales happen on WhatsApp only.
         </div>
