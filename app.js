@@ -69,4 +69,69 @@ auth.onAuthStateChanged((user) => {
         window.location.href = "dashboard.html";
     }
 });
+// --- DASHBOARD LOGIC ---
+
+// 1. Function to turn "Sebastian Hub" into "sebastian-hub"
+function generateSlug(text) {
+    return text.toLowerCase()
+               .trim()
+               .replace(/[^\w\s-]/g, '')
+               .replace(/[\s_-]+/g, '-')
+               .replace(/^-+|-+$/g, '');
+}
+
+// 2. Save Store Settings
+async function saveStoreSettings() {
+    const user = auth.currentUser;
+    const bizName = document.getElementById('biz-name').value;
+    const bizPhone = document.getElementById('biz-phone').value;
+    const slug = generateSlug(bizName);
+
+    if (!bizName || !bizPhone) return alert("Please fill all fields");
+
+    try {
+        await db.collection("stores").doc(user.uid).set({
+            storeName: bizName,
+            whatsapp: bizPhone,
+            slug: slug,
+            ownerId: user.uid,
+            createdAt: new Date()
+        });
+        alert("Store setup complete!");
+        checkStoreExists(user); // Refresh the UI
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+// 3. Check if user already has a store
+async function checkStoreExists(user) {
+    if (!user) return;
+    
+    const storeRef = db.collection("stores").doc(user.uid);
+    const doc = await storeRef.get();
+
+    if (doc.exists) {
+        const data = doc.data();
+        document.getElementById('setup-section').style.display = 'none';
+        document.getElementById('manage-section').style.display = 'block';
+        
+        // Generate the Public Link
+        const publicLink = window.location.origin + "/store.html?slug=" + data.slug;
+        document.getElementById('store-url').innerText = publicLink;
+    }
+}
+
+// 4. Update the Auth Listener
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        if (window.location.pathname.includes("dashboard.html")) {
+            checkStoreExists(user);
+        }
+    } else {
+        if (window.location.pathname.includes("dashboard.html")) {
+            window.location.href = "index.html";
+        }
+    }
+});
 
