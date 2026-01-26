@@ -182,3 +182,8 @@ function reportStore() {
     alert("This store has been flagged for review. Thank you for keeping SebastianHub safe.");
 }
 
+function copyStoreLink() {
+    const linkText = document.getElementById('store-url').innerText;
+    navigator.clipboard.writeText(linkText);
+    alert("Link copied! Now paste it on your WhatsApp status.");
+}
