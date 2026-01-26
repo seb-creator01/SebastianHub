@@ -1,1 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SebastianHub - Loading Store...</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1 id="display-store-name">SebastianHub</h1>
+            <div id="badge" class="badge-new">New Seller</div>
+        </header>
+
+        <div class="warning-box">
+            ⚠️ <strong>Safety Tip:</strong> Always verify the seller before making any payments. Sales happen on WhatsApp only.
+        </div>
+
+        <main id="product-list" class="grid-container">
+            </main>
+
+        <button class="report-btn" onclick="reportStore()">Report this Store</button>
+    </div>
+
+</body>
+</html>
 
