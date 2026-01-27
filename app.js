@@ -17,6 +17,23 @@ const db = firebase.firestore();
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwsc9eumf/image/upload";
 const CLOUDINARY_UPLOAD_PRESET = "sebastian_preset";
 
+// --- NEW HELPER: TIME AGO FUNCTION ---
+function timeAgo(date) {
+    if (!date) return "";
+    const seconds = Math.floor((new Date() - date.toDate()) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+    if (interval > 1) return interval + " years ago";
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) return interval + " months ago";
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) return interval + (interval === 1 ? " day ago" : " days ago");
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) return interval + (interval === 1 ? " hour ago" : " hours ago");
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) return interval + (interval === 1 ? " min ago" : " mins ago");
+    return "Just now";
+}
+
 // 3. TOGGLE BETWEEN LOGIN AND SIGNUP
 let isLoginMode = false;
 
@@ -246,6 +263,7 @@ async function handleProductUpload() {
             if(!imageUrl) { toggleLoader(false); return alert("Please select an image for new products"); }
             productData.createdAt = new Date();
             productData.isSoldOut = false; // NEW: Default to not sold out
+            productData.isFeatured = false; // NEW: Default not featured
             await db.collection("products").add(productData);
             alert("Uploaded Successfully!");
         }
@@ -258,6 +276,11 @@ async function loadSellerProducts(slug) {
     if(!list) return;
     const snapshot = await db.collection("products").where("storeSlug", "==", slug).get();
     list.innerHTML = "";
+    
+    // Count featured items to enforce limit
+    let featuredCount = 0;
+    snapshot.forEach(doc => { if(doc.data().isFeatured) featuredCount++; });
+
     snapshot.forEach(doc => {
         const p = doc.data();
         const div = document.createElement('div');
@@ -266,13 +289,18 @@ async function loadSellerProducts(slug) {
         // Dynamic status button
         const statusColor = p.isSoldOut ? "#888" : "#25D366";
         const statusText = p.isSoldOut ? "Restock" : "Mark Sold";
+        const pinText = p.isFeatured ? "Unpin" : "Pin Top";
+        const pinColor = p.isFeatured ? "#f1c40f" : "#95a5a6";
 
         div.innerHTML = `
-            <div>
-                <strong>${p.name}</strong> ${p.isSoldOut ? '<span style="color:red; font-size:10px;">(SOLD)</span>' : ''}<br>
-                ₦${p.price} | ${p.category || 'No Category'}
+            <div style="flex:1;">
+                <strong>${p.name}</strong> ${p.isSoldOut ? '<span style="color:red; font-size:10px;">(SOLD)</span>' : ''} 
+                ${p.isFeatured ? '⭐' : ''}<br>
+                ₦${p.price} | ${p.category || 'No Category'}<br>
+                <span style="font-size:10px; color:#999;">Last update: ${timeAgo(p.updatedAt || p.createdAt)}</span>
             </div>
-            <div style="display:flex; gap:5px;">
+            <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+                <button onclick="toggleFeatured('${doc.id}', ${p.isFeatured}, ${featuredCount})" style="background:${pinColor}; width:auto; padding:5px 8px; font-size:11px;">${pinText}</button>
                 <button onclick="toggleSoldStatus('${doc.id}', ${p.isSoldOut})" style="background:${statusColor}; width:auto; padding:5px 8px; font-size:11px;">${statusText}</button>
                 <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}', '${p.category || ''}')" style="background:#3498db; width:auto; padding:5px 8px; font-size:11px;">Edit</button>
                 <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 8px; font-size:11px;">Delete</button>
@@ -282,11 +310,21 @@ async function loadSellerProducts(slug) {
     });
 }
 
+// --- NEW: TOGGLE FEATURED STATUS ---
+async function toggleFeatured(id, currentStatus, count) {
+    if (!currentStatus && count >= 3) return alert("You can only pin up to 3 featured products.");
+    try {
+        await db.collection("products").doc(id).update({ isFeatured: !currentStatus });
+        location.reload();
+    } catch (e) { alert(e.message); }
+}
+
 // --- NEW: TOGGLE SOLD STATUS ---
 async function toggleSoldStatus(id, currentStatus) {
     try {
         await db.collection("products").doc(id).update({
-            isSoldOut: !currentStatus
+            isSoldOut: !currentStatus,
+            updatedAt: new Date()
         });
         location.reload();
     } catch (e) { alert("Error updating status: " + e.message); }
@@ -352,39 +390,69 @@ async function loadPublicStore() {
     renderProducts(allProducts); // Initial render
 }
 
+// NEW: Helper to get category color
+function getCategoryStyle(cat) {
+    const colors = {
+        'Electronics': '#3498db',
+        'Fashion': '#e91e63',
+        'Beauty': '#9b59b6',
+        'Food': '#e67e22',
+        'Home': '#27ae60',
+        'Services': '#1abc9c'
+    };
+    return colors[cat] || '#7f8c8d';
+}
+
 // Function to render the product grid
 function renderProducts(products) {
-    const list = document.getElementById('product-list');
-    if(!list) return;
-    list.innerHTML = "";
+    const featuredList = document.getElementById('featured-list');
+    const regularList = document.getElementById('product-list');
+    const featuredSection = document.getElementById('featured-section');
+
+    if(!regularList) return;
+    regularList.innerHTML = "";
+    if(featuredList) featuredList.innerHTML = "";
 
     if (products.length === 0) {
-        list.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding: 20px; color:#888;'>No products found matching your search.</p>";
+        regularList.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding: 20px; color:#888;'>No products found matching your search.</p>";
+        if(featuredSection) featuredSection.style.display = "none";
         return;
     }
 
-    products.forEach(p => {
-        const card = document.createElement('div');
-        card.className = "product-card";
-        
-        // Sold Out Styles
+    const featuredItems = products.filter(p => p.isFeatured);
+    const regularItems = products.filter(p => !p.isFeatured);
+
+    // Show/Hide featured section header
+    if(featuredSection) featuredSection.style.display = featuredItems.length > 0 ? "block" : "none";
+
+    const createCard = (p) => {
         const opacity = p.isSoldOut ? 'opacity: 0.6;' : '';
         const soldTag = p.isSoldOut ? '<div style="position:absolute; top:10px; right:10px; background:red; color:white; padding:5px 10px; border-radius:5px; font-weight:bold; font-size:12px; z-index:5;">SOLD OUT</div>' : '';
         const waLink = p.isSoldOut ? '#' : `https://wa.me/${p.whatsapp}?text=Hello, I am interested in ${p.name}`;
         const waText = p.isSoldOut ? 'Out of Stock' : 'Order on WhatsApp';
         const waStyle = p.isSoldOut ? 'background:#ccc; pointer-events:none;' : '';
+        const catBadge = p.category ? `<span style="background:${getCategoryStyle(p.category)}; color:white; padding:3px 8px; border-radius:12px; font-size:10px; margin-bottom:5px; display:inline-block;">${p.category}</span>` : '';
 
+        const card = document.createElement('div');
+        card.className = "product-card";
         card.style = `position:relative; ${opacity}`;
         card.innerHTML = `
             ${soldTag}
             <img src="${p.image}" alt="${p.name}" onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')">
-            <h3>${p.name}</h3>
-            <p class="price">₦${p.price}</p>
-            <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
-            <a href="${waLink}" class="wa-link" style="${waStyle}">${waText}</a>
+            <div style="padding:10px;">
+                ${catBadge}
+                <p style="font-size:9px; color:#999; margin: 0;">Updated ${timeAgo(p.updatedAt || p.createdAt)}</p>
+                <h3 style="margin:5px 0;">${p.name}</h3>
+                <p class="price" style="color:#25D366; font-weight:bold;">₦${p.price}</p>
+                <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
+                <a href="${waLink}" class="wa-link" style="display:block; text-align:center; padding:10px; border-radius:5px; text-decoration:none; color:white; font-weight:bold; ${waStyle}">${waText}</a>
+            </div>
         `;
-        list.appendChild(card);
-    });
+        return card;
+    };
+
+    featuredItems.forEach(p => { if(featuredList) featuredList.appendChild(createCard(p)); });
+    regularItems.forEach(p => { regularList.appendChild(createCard(p)); });
 }
 
 // Function to filter products based on search input and category selection
