@@ -403,6 +403,19 @@ function copyStoreLink() {
     alert("Link copied! Now paste it on your WhatsApp status.");
 }
 
+// --- GROWTH SECTION: SHARE TO WHATSAPP ---
+function shareToWhatsApp() {
+    const linkText = document.getElementById('store-url').innerText;
+    const bizName = document.getElementById('biz-name').value || "my store";
+    
+    const message = encodeURIComponent(
+        `Hi! Check out my official store on SebastianHub: ${bizName} 🛍️\n\n` +
+        `Browse my products and chat with me directly here:\n${linkText}`
+    );
+    
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+}
+
 // --- ADMIN MASTER LIST LOGIC (UPDATED WITH DEBUGGING & NO ORDERBY) ---
 
 const ADMIN_EMAIL = "precioussebastian70@gmail.com"; 
