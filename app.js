@@ -174,7 +174,8 @@ async function saveStoreSettings() {
             whatsapp: bizPhone,
             slug: slug,
             ownerId: user.uid,
-            visits: 0, // Initialize visits for new stores
+            visits: 0, 
+            profilePic: "https://via.placeholder.com/100", // Default profile pic
             createdAt: new Date()
         });
         alert("Store setup complete!");
@@ -200,10 +201,16 @@ async function checkStoreExists(user) {
         document.getElementById('setup-section').style.display = 'none';
         document.getElementById('manage-section').style.display = 'block';
         
-        // --- NEW: DISPLAY VISITOR COUNT ON DASHBOARD ---
+        // --- DISPLAY VISITOR COUNT ON DASHBOARD ---
         const visitCounter = document.getElementById('visit-count');
         if (visitCounter) {
             visitCounter.innerText = data.visits || 0;
+        }
+
+        // --- DISPLAY SELLER PROFILE PIC PREVIEW ---
+        const profilePreview = document.getElementById('profile-preview');
+        if (profilePreview) {
+            profilePreview.src = data.profilePic || "https://via.placeholder.com/100";
         }
 
         // Dynamic link generation for GitHub Pages
@@ -213,7 +220,50 @@ async function checkStoreExists(user) {
     }
 }
 
-// --- NEW UPDATED LOGIC (IMAGE UPLOAD, EDIT, DELETE, LOADER) ---
+// --- NEW: UPLOAD PROFILE PICTURE LOGIC ---
+async function uploadProfilePic() {
+    const file = document.getElementById('profile-upload').files[0];
+    if (!file) return alert("Select an image first");
+    
+    toggleLoader(true);
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        
+        const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        await db.collection("stores").doc(auth.currentUser.uid).update({ 
+            profilePic: data.secure_url 
+        });
+        
+        const profilePreview = document.getElementById('profile-preview');
+        if (profilePreview) profilePreview.src = data.secure_url;
+        
+        alert("Profile Picture Updated!");
+    } catch (e) { 
+        alert("Error: " + e.message); 
+    }
+    toggleLoader(false);
+}
+
+// --- CUSTOMER PROFILE LOGIC (FOR STORE VIEW) ---
+function saveCustomerProfile() {
+    const name = document.getElementById('cust-name').value;
+    const address = document.getElementById('cust-address').value;
+    localStorage.setItem('customer_profile', JSON.stringify({ name, address }));
+    alert("Profile saved! Your info will now be attached to your orders.");
+    document.getElementById('profile-form').style.display = 'none';
+    renderProducts(allProducts); // Refresh links with customer data
+}
+
+function getCustomerData() {
+    const data = localStorage.getItem('customer_profile');
+    return data ? JSON.parse(data) : null;
+}
+
+// --- PRODUCT LOGIC ---
 
 function toggleLoader(show) {
     const loader = document.getElementById('loader');
@@ -225,7 +275,7 @@ async function handleProductUpload() {
     const name = document.getElementById('p-name').value;
     const price = document.getElementById('p-price').value;
     const desc = document.getElementById('p-desc').value;
-    const category = document.getElementById('p-category').value; // NEW
+    const category = document.getElementById('p-category').value; 
     const editId = document.getElementById('edit-id').value;
 
     if (!name || !price) return alert("Fill name and price!");
@@ -249,7 +299,7 @@ async function handleProductUpload() {
 
         const productData = {
             name, price, description: desc,
-            category: category, // NEW
+            category: category, 
             storeSlug: storeData.slug,
             ownerId: user.uid,
             updatedAt: new Date()
@@ -262,8 +312,8 @@ async function handleProductUpload() {
         } else {
             if(!imageUrl) { toggleLoader(false); return alert("Please select an image for new products"); }
             productData.createdAt = new Date();
-            productData.isSoldOut = false; // NEW: Default to not sold out
-            productData.isFeatured = false; // NEW: Default not featured
+            productData.isSoldOut = false; 
+            productData.isFeatured = false; 
             await db.collection("products").add(productData);
             alert("Uploaded Successfully!");
         }
@@ -277,7 +327,6 @@ async function loadSellerProducts(slug) {
     const snapshot = await db.collection("products").where("storeSlug", "==", slug).get();
     list.innerHTML = "";
     
-    // Count featured items to enforce limit
     let featuredCount = 0;
     snapshot.forEach(doc => { if(doc.data().isFeatured) featuredCount++; });
 
@@ -286,7 +335,6 @@ async function loadSellerProducts(slug) {
         const div = document.createElement('div');
         div.style = "border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:white;";
         
-        // Dynamic status button
         const statusColor = p.isSoldOut ? "#888" : "#25D366";
         const statusText = p.isSoldOut ? "Restock" : "Mark Sold";
         const pinText = p.isFeatured ? "Unpin" : "Pin Top";
@@ -310,7 +358,6 @@ async function loadSellerProducts(slug) {
     });
 }
 
-// --- NEW: TOGGLE FEATURED STATUS ---
 async function toggleFeatured(id, currentStatus, count) {
     if (!currentStatus && count >= 3) return alert("You can only pin up to 3 featured products.");
     try {
@@ -319,7 +366,6 @@ async function toggleFeatured(id, currentStatus, count) {
     } catch (e) { alert(e.message); }
 }
 
-// --- NEW: TOGGLE SOLD STATUS ---
 async function toggleSoldStatus(id, currentStatus) {
     try {
         await db.collection("products").doc(id).update({
@@ -330,12 +376,12 @@ async function toggleSoldStatus(id, currentStatus) {
     } catch (e) { alert("Error updating status: " + e.message); }
 }
 
-function editForm(id, name, price, desc, category) { // UPDATED
+function editForm(id, name, price, desc, category) { 
     document.getElementById('edit-id').value = id;
     document.getElementById('p-name').value = name;
     document.getElementById('p-price').value = price;
     document.getElementById('p-desc').value = desc;
-    document.getElementById('p-category').value = category || ""; // NEW
+    document.getElementById('p-category').value = category || ""; 
     document.getElementById('upload-btn').innerText = "Save Changes";
     window.scrollTo(0,0);
 }
@@ -347,9 +393,9 @@ async function deleteProduct(id) {
     }
 }
 
-// --- PUBLIC STORE VIEW LOGIC (UPDATED WITH SEARCH & FILTER) ---
+// --- PUBLIC STORE VIEW LOGIC (UPDATED WITH PROFILE PIC & CUSTOMER DATA) ---
 
-let allProducts = []; // Global variable to store all products for local filtering
+let allProducts = []; 
 
 async function loadPublicStore() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -367,12 +413,17 @@ async function loadPublicStore() {
     document.getElementById('display-store-name').innerText = storeData.storeName;
     document.title = storeData.storeName + " - SebastianHub";
 
-    // --- NEW: INCREMENT VISITOR COUNT ON PUBLIC PAGE LOAD ---
+    // --- DISPLAY SELLER PROFILE IMAGE ---
+    const storeProfileImg = document.getElementById('store-profile-img');
+    if (storeProfileImg) {
+        storeProfileImg.src = storeData.profilePic || "https://via.placeholder.com/100";
+    }
+
+    // --- INCREMENT VISITOR COUNT ---
     db.collection("stores").doc(storeDoc.id).update({
         visits: firebase.firestore.FieldValue.increment(1)
     });
 
-    // Update verified badge UI if store is verified
     const badge = document.getElementById('badge');
     if (badge && storeData.isVerified) {
         badge.innerText = "Verified Seller ✅";
@@ -382,15 +433,21 @@ async function loadPublicStore() {
 
     const productQuery = await db.collection("products").where("storeSlug", "==", slug).get();
     
-    allProducts = []; // Clear array
+    allProducts = []; 
     productQuery.forEach(doc => {
         allProducts.push({ id: doc.id, ...doc.data(), whatsapp: storeData.whatsapp });
     });
 
-    renderProducts(allProducts); // Initial render
+    // Pre-fill Customer Profile if exists
+    const customer = getCustomerData();
+    if (customer) {
+        if (document.getElementById('cust-name')) document.getElementById('cust-name').value = customer.name;
+        if (document.getElementById('cust-address')) document.getElementById('cust-address').value = customer.address;
+    }
+
+    renderProducts(allProducts); 
 }
 
-// NEW: Helper to get category color
 function getCategoryStyle(cat) {
     const colors = {
         'Electronics': '#3498db',
@@ -403,7 +460,6 @@ function getCategoryStyle(cat) {
     return colors[cat] || '#7f8c8d';
 }
 
-// Function to render the product grid
 function renderProducts(products) {
     const featuredList = document.getElementById('featured-list');
     const regularList = document.getElementById('product-list');
@@ -412,6 +468,13 @@ function renderProducts(products) {
     if(!regularList) return;
     regularList.innerHTML = "";
     if(featuredList) featuredList.innerHTML = "";
+
+    // Get customer info for WA message
+    const customer = getCustomerData();
+    let customerString = "";
+    if (customer && customer.name) {
+        customerString = `\n\n--- Customer Info ---\nName: ${customer.name}\nAddress: ${customer.address || 'Not provided'}`;
+    }
 
     if (products.length === 0) {
         regularList.innerHTML = "<p style='grid-column: 1/-1; text-align:center; padding: 20px; color:#888;'>No products found matching your search.</p>";
@@ -422,14 +485,17 @@ function renderProducts(products) {
     const featuredItems = products.filter(p => p.isFeatured);
     const regularItems = products.filter(p => !p.isFeatured);
 
-    // Show/Hide featured section header
     if(featuredSection) featuredSection.style.display = featuredItems.length > 0 ? "block" : "none";
 
     const createCard = (p) => {
         const opacity = p.isSoldOut ? 'opacity: 0.6;' : '';
         const soldTag = p.isSoldOut ? '<div style="position:absolute; top:10px; right:10px; background:red; color:white; padding:5px 10px; border-radius:5px; font-weight:bold; font-size:12px; z-index:5;">SOLD OUT</div>' : '';
-        const waLink = p.isSoldOut ? '#' : `https://wa.me/${p.whatsapp}?text=Hello, I am interested in ${p.name}`;
-        const waText = p.isSoldOut ? 'Out of Stock' : 'Order on WhatsApp';
+        
+        // Include customer string in WhatsApp text
+        const waTextMsg = encodeURIComponent(`Hello, I'm interested in buying: ${p.name} (₦${p.price})${customerString}`);
+        const waLink = p.isSoldOut ? '#' : `https://wa.me/${p.whatsapp}?text=${waTextMsg}`;
+        
+        const waBtnLabel = p.isSoldOut ? 'Out of Stock' : 'Order on WhatsApp';
         const waStyle = p.isSoldOut ? 'background:#ccc; pointer-events:none;' : '';
         const catBadge = p.category ? `<span style="background:${getCategoryStyle(p.category)}; color:white; padding:3px 8px; border-radius:12px; font-size:10px; margin-bottom:5px; display:inline-block;">${p.category}</span>` : '';
 
@@ -445,7 +511,7 @@ function renderProducts(products) {
                 <h3 style="margin:5px 0;">${p.name}</h3>
                 <p class="price" style="color:#25D366; font-weight:bold;">₦${p.price}</p>
                 <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
-                <a href="${waLink}" class="wa-link" style="display:block; text-align:center; padding:10px; border-radius:5px; text-decoration:none; color:white; font-weight:bold; ${waStyle}">${waText}</a>
+                <a href="${waLink}" class="wa-link" style="display:block; text-align:center; padding:10px; border-radius:5px; text-decoration:none; color:white; font-weight:bold; ${waStyle}">${waBtnLabel}</a>
             </div>
         `;
         return card;
@@ -455,7 +521,6 @@ function renderProducts(products) {
     regularItems.forEach(p => { regularList.appendChild(createCard(p)); });
 }
 
-// Function to filter products based on search input and category selection
 function filterProducts() {
     const searchQuery = document.getElementById('search-input').value.toLowerCase();
     const categoryQuery = document.getElementById('filter-category').value;
@@ -470,11 +535,18 @@ function filterProducts() {
 }
 
 function openModal(name, price, desc, img, phone) {
+    const customer = getCustomerData();
+    let customerString = "";
+    if (customer && customer.name) {
+        customerString = `\n\n--- Customer Info ---\nName: ${customer.name}\nAddress: ${customer.address || 'Not provided'}`;
+    }
+    const waTextMsg = encodeURIComponent(`Hello, I'm interested in: ${name} (₦${price})${customerString}`);
+
     document.getElementById('modal-name').innerText = name;
     document.getElementById('modal-price').innerText = "₦" + price;
     document.getElementById('modal-desc').innerText = desc || "No description provided.";
     document.getElementById('modal-img').src = img;
-    document.getElementById('modal-wa-btn').href = `https://wa.me/${phone}?text=Hello, I'm interested in ${name}`;
+    document.getElementById('modal-wa-btn').href = `https://wa.me/${phone}?text=${waTextMsg}`;
     document.getElementById('product-modal').style.display = "flex";
 }
 
@@ -486,7 +558,6 @@ if (window.location.pathname.includes("store.html")) {
     loadPublicStore();
 }
 
-// --- UPDATED REPORT LOGIC ---
 async function reportStore() {
     const urlParams = new URLSearchParams(window.location.search);
     const slug = urlParams.get('slug');
@@ -514,7 +585,6 @@ function copyStoreLink() {
     alert("Link copied! Now paste it on your WhatsApp status.");
 }
 
-// --- GROWTH SECTION: SHARE TO WHATSAPP ---
 function shareToWhatsApp() {
     const linkText = document.getElementById('store-url').innerText;
     const bizName = document.getElementById('biz-name').value || "my store";
@@ -526,8 +596,6 @@ function shareToWhatsApp() {
     
     window.open(`https://wa.me/?text=${message}`, '_blank');
 }
-
-// --- ADMIN MASTER LIST LOGIC (UPDATED WITH DEBUGGING & NO ORDERBY) ---
 
 const ADMIN_EMAIL = "precioussebastian70@gmail.com"; 
 
@@ -543,9 +611,6 @@ async function loadMasterList() {
     if (!tbody) return;
 
     try {
-        console.log("Admin: Attempting to fetch stores...");
-        
-        // 1. Fetch all reports
         const reportsSnapshot = await db.collection("reports").get();
         const reportCounts = {};
         reportsSnapshot.forEach(doc => {
@@ -553,12 +618,10 @@ async function loadMasterList() {
             reportCounts[data.flaggedStore] = (reportCounts[data.flaggedStore] || 0) + 1;
         });
 
-        // 2. Fetch all stores (Removed .orderBy to bypass index requirement for now)
         const snapshot = await db.collection("stores").get();
         tbody.innerHTML = "";
 
         if (snapshot.empty) {
-            console.log("Admin: Firestore collection 'stores' is empty.");
             tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>No stores found in database.</td></tr>";
             return;
         }
@@ -585,9 +648,7 @@ async function loadMasterList() {
             `;
             tbody.appendChild(tr);
         });
-        console.log("Admin: List loaded successfully.");
     } catch (error) {
-        console.error("Admin Load Error:", error);
         alert("Database Error: " + error.message);
     }
 }
@@ -608,14 +669,11 @@ async function adminDeleteStore(storeId) {
     }
 }
 
-// Run the loader if on admin.html
 if (window.location.pathname.includes("admin.html")) {
     auth.onAuthStateChanged((user) => {
         if (user) loadMasterList();
     });
 }
-
-// --- NEW UPDATE: DARK MODE LOGIC ---
 
 function toggleDarkMode() {
     const body = document.body;
@@ -628,7 +686,6 @@ function toggleDarkMode() {
     if (btn) btn.innerText = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
 }
 
-// Initialize theme on load
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
