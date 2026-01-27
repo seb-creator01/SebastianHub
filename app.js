@@ -157,6 +157,7 @@ async function saveStoreSettings() {
             whatsapp: bizPhone,
             slug: slug,
             ownerId: user.uid,
+            visits: 0, // Initialize visits for new stores
             createdAt: new Date()
         });
         alert("Store setup complete!");
@@ -182,6 +183,12 @@ async function checkStoreExists(user) {
         document.getElementById('setup-section').style.display = 'none';
         document.getElementById('manage-section').style.display = 'block';
         
+        // --- NEW: DISPLAY VISITOR COUNT ON DASHBOARD ---
+        const visitCounter = document.getElementById('visit-count');
+        if (visitCounter) {
+            visitCounter.innerText = data.visits || 0;
+        }
+
         // Dynamic link generation for GitHub Pages
         const publicLink = window.location.origin + window.location.pathname.replace("dashboard.html", "store.html") + "?slug=" + data.slug;
         document.getElementById('store-url').innerText = publicLink;
@@ -297,9 +304,15 @@ async function loadPublicStore() {
         return;
     }
     
-    const storeData = storeQuery.docs[0].data();
+    const storeDoc = storeQuery.docs[0];
+    const storeData = storeDoc.data();
     document.getElementById('display-store-name').innerText = storeData.storeName;
     document.title = storeData.storeName + " - SebastianHub";
+
+    // --- NEW: INCREMENT VISITOR COUNT ON PUBLIC PAGE LOAD ---
+    db.collection("stores").doc(storeDoc.id).update({
+        visits: firebase.firestore.FieldValue.increment(1)
+    });
 
     // Update verified badge UI if store is verified
     const badge = document.getElementById('badge');
