@@ -28,6 +28,9 @@
             <p style="font-size: 13px; color: #666; margin-bottom: 10px;">This creates your unique link.</p>
             <input type="text" id="biz-name" placeholder="Business Name (e.g., Sebastian Hub)">
             <input type="tel" id="biz-phone" placeholder="WhatsApp Number (e.g., 23480...)">
+            
+            <textarea id="biz-bio" placeholder="Short Business Bio (e.g. We sell the best Gadgets in Lagos)" rows="2" style="width:100%; padding:12px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px; font-family:inherit;"></textarea>
+            
             <button onclick="saveStoreSettings()">Create Store Link</button>
         </section>
 
@@ -36,12 +39,21 @@
                 Open Admin Master Panel 👑
             </a>
 
-            <div class="card" style="text-align: center; margin-bottom: 20px; border: 1px solid #eee; background: #fafafa;">
-                <h4 style="margin-bottom: 10px;">Store Logo / Profile Picture</h4>
+            <div class="card" style="margin-bottom: 20px; border: 1px solid #eee; background: #fafafa; text-align: center;">
+                <h4 style="margin-bottom: 10px;">Store Branding</h4>
+                
                 <img id="profile-preview" src="https://via.placeholder.com/100" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #25D366; margin-bottom: 10px;">
-                <input type="file" id="profile-upload" accept="image/*" style="font-size: 12px; margin-bottom: 10px;">
-                <button onclick="uploadProfilePic()" style="width: auto; padding: 8px 15px; font-size: 12px; background: #128C7E;">Update Store Logo</button>
+                <input type="file" id="profile-upload" accept="image/*" style="font-size: 12px; margin-bottom: 10px; display: block; margin-left: auto; margin-right: auto;">
+                <button onclick="uploadProfilePic()" style="width: auto; padding: 8px 15px; font-size: 12px; background: #128C7E; margin-bottom: 15px;">Update Logo</button>
+                
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+                
+                <h4 style="margin-bottom: 5px; text-align: left;">Update Business Bio</h4>
+                <textarea id="biz-bio-edit" placeholder="What does your business do?" rows="2" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px; font-family:inherit;"></textarea>
+                <button onclick="updateBio()" style="width: auto; padding: 8px 15px; font-size: 12px; background: #3498db; float: right;">Save Bio</button>
+                <div style="clear: both;"></div>
             </div>
+
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <div style="flex: 1; background: #fff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee;">
                     <span style="font-size: 11px; color: #666; display: block; text-transform: uppercase; letter-spacing: 1px;">Store Visits</span>
