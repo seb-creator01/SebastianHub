@@ -403,14 +403,14 @@ function copyStoreLink() {
     alert("Link copied! Now paste it on your WhatsApp status.");
 }
 
-// --- ADMIN MASTER LIST LOGIC (NEW) ---
+// --- ADMIN MASTER LIST LOGIC (UPDATED WITH DEBUGGING & NO ORDERBY) ---
 
 const ADMIN_EMAIL = "precioussebastian70@gmail.com"; 
 
 async function loadMasterList() {
     const user = auth.currentUser;
     if (!user || user.email !== ADMIN_EMAIL) {
-        alert("Access Denied.");
+        alert("Access Denied. Logged in as: " + (user ? user.email : "Guest"));
         window.location.href = "dashboard.html";
         return;
     }
@@ -418,40 +418,54 @@ async function loadMasterList() {
     const tbody = document.getElementById('admin-master-list');
     if (!tbody) return;
 
-    // 1. Get all reports first to count them
-    const reportsSnapshot = await db.collection("reports").get();
-    const reportCounts = {};
-    reportsSnapshot.forEach(doc => {
-        const data = doc.data();
-        reportCounts[data.flaggedStore] = (reportCounts[data.flaggedStore] || 0) + 1;
-    });
-
-    // 2. Fetch all stores
-    const snapshot = await db.collection("stores").orderBy("createdAt", "desc").get();
-    tbody.innerHTML = "";
-
-    snapshot.forEach(doc => {
-        const store = doc.data();
-        const count = reportCounts[store.slug] || 0; 
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #eee";
+    try {
+        console.log("Admin: Attempting to fetch stores...");
         
-        const reportStyle = count > 0 ? "color: red; font-weight: bold;" : "color: #888;";
+        // 1. Fetch all reports
+        const reportsSnapshot = await db.collection("reports").get();
+        const reportCounts = {};
+        reportsSnapshot.forEach(doc => {
+            const data = doc.data();
+            reportCounts[data.flaggedStore] = (reportCounts[data.flaggedStore] || 0) + 1;
+        });
 
-        tr.innerHTML = `
-            <td style="padding: 10px;">${store.storeName}</td>
-            <td style="padding: 10px;">${store.whatsapp}</td>
-            <td style="padding: 10px;">
-                ${store.isVerified ? '<span style="color:green;">Verified ✅</span>' : '<span style="color:orange;">Pending</span>'}
-            </td>
-            <td style="padding: 10px; ${reportStyle}">${count} Reports</td>
-            <td style="padding: 10px;">
-                <button onclick="adminVerifyStore('${doc.id}')" style="font-size: 10px; padding: 5px; width: auto; background: #3498db; margin-right:5px;">Verify</button>
-                <button onclick="adminDeleteStore('${doc.id}')" style="font-size: 10px; padding: 5px; width: auto; background: #e74c3c;">Delete</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
+        // 2. Fetch all stores (Removed .orderBy to bypass index requirement for now)
+        const snapshot = await db.collection("stores").get();
+        tbody.innerHTML = "";
+
+        if (snapshot.empty) {
+            console.log("Admin: Firestore collection 'stores' is empty.");
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#888;'>No stores found in database.</td></tr>";
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const store = doc.data();
+            const count = reportCounts[store.slug] || 0; 
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = "1px solid #eee";
+            
+            const reportStyle = count > 0 ? "color: red; font-weight: bold;" : "color: #888;";
+
+            tr.innerHTML = `
+                <td style="padding: 10px;">${store.storeName}</td>
+                <td style="padding: 10px;">${store.whatsapp}</td>
+                <td style="padding: 10px;">
+                    ${store.isVerified ? '<span style="color:green;">Verified ✅</span>' : '<span style="color:orange;">Pending</span>'}
+                </td>
+                <td style="padding: 10px; ${reportStyle}">${count} Reports</td>
+                <td style="padding: 10px;">
+                    <button onclick="adminVerifyStore('${doc.id}')" style="font-size: 10px; padding: 5px; width: auto; background: #3498db; margin-right:5px;">Verify</button>
+                    <button onclick="adminDeleteStore('${doc.id}')" style="font-size: 10px; padding: 5px; width: auto; background: #e74c3c;">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        console.log("Admin: List loaded successfully.");
+    } catch (error) {
+        console.error("Admin Load Error:", error);
+        alert("Database Error: " + error.message);
+    }
 }
 
 async function adminVerifyStore(storeId) {
