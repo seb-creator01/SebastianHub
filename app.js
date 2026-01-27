@@ -245,6 +245,7 @@ async function handleProductUpload() {
         } else {
             if(!imageUrl) { toggleLoader(false); return alert("Please select an image for new products"); }
             productData.createdAt = new Date();
+            productData.isSoldOut = false; // NEW: Default to not sold out
             await db.collection("products").add(productData);
             alert("Uploaded Successfully!");
         }
@@ -261,15 +262,34 @@ async function loadSellerProducts(slug) {
         const p = doc.data();
         const div = document.createElement('div');
         div.style = "border:1px solid #ddd; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:white;";
+        
+        // Dynamic status button
+        const statusColor = p.isSoldOut ? "#888" : "#25D366";
+        const statusText = p.isSoldOut ? "Restock" : "Mark Sold";
+
         div.innerHTML = `
-            <div><strong>${p.name}</strong><br>₦${p.price} | ${p.category || 'No Category'}</div>
             <div>
-                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}', '${p.category || ''}')" style="background:#3498db; width:auto; padding:5px 10px; margin-right:5px; font-size:12px;">Edit</button>
-                <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 10px; font-size:12px;">Delete</button>
+                <strong>${p.name}</strong> ${p.isSoldOut ? '<span style="color:red; font-size:10px;">(SOLD)</span>' : ''}<br>
+                ₦${p.price} | ${p.category || 'No Category'}
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button onclick="toggleSoldStatus('${doc.id}', ${p.isSoldOut})" style="background:${statusColor}; width:auto; padding:5px 8px; font-size:11px;">${statusText}</button>
+                <button onclick="editForm('${doc.id}', '${p.name}', '${p.price}', '${p.description || ''}', '${p.category || ''}')" style="background:#3498db; width:auto; padding:5px 8px; font-size:11px;">Edit</button>
+                <button onclick="deleteProduct('${doc.id}')" style="background:#e74c3c; width:auto; padding:5px 8px; font-size:11px;">Delete</button>
             </div>
         `;
         list.appendChild(div);
     });
+}
+
+// --- NEW: TOGGLE SOLD STATUS ---
+async function toggleSoldStatus(id, currentStatus) {
+    try {
+        await db.collection("products").doc(id).update({
+            isSoldOut: !currentStatus
+        });
+        location.reload();
+    } catch (e) { alert("Error updating status: " + e.message); }
 }
 
 function editForm(id, name, price, desc, category) { // UPDATED
@@ -346,12 +366,22 @@ function renderProducts(products) {
     products.forEach(p => {
         const card = document.createElement('div');
         card.className = "product-card";
+        
+        // Sold Out Styles
+        const opacity = p.isSoldOut ? 'opacity: 0.6;' : '';
+        const soldTag = p.isSoldOut ? '<div style="position:absolute; top:10px; right:10px; background:red; color:white; padding:5px 10px; border-radius:5px; font-weight:bold; font-size:12px; z-index:5;">SOLD OUT</div>' : '';
+        const waLink = p.isSoldOut ? '#' : `https://wa.me/${p.whatsapp}?text=Hello, I am interested in ${p.name}`;
+        const waText = p.isSoldOut ? 'Out of Stock' : 'Order on WhatsApp';
+        const waStyle = p.isSoldOut ? 'background:#ccc; pointer-events:none;' : '';
+
+        card.style = `position:relative; ${opacity}`;
         card.innerHTML = `
+            ${soldTag}
             <img src="${p.image}" alt="${p.name}" onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')">
             <h3>${p.name}</h3>
             <p class="price">₦${p.price}</p>
             <button onclick="openModal('${p.name}', '${p.price}', '${p.description || ''}', '${p.image}', '${p.whatsapp}')" style="font-size:12px; padding:5px; margin-bottom:10px; width:100%;">View Details</button>
-            <a href="https://wa.me/${p.whatsapp}?text=Hello, I am interested in ${p.name}" class="wa-link">Order on WhatsApp</a>
+            <a href="${waLink}" class="wa-link" style="${waStyle}">${waText}</a>
         `;
         list.appendChild(card);
     });
