@@ -164,6 +164,7 @@ async function saveStoreSettings() {
     const user = auth.currentUser;
     const bizName = document.getElementById('biz-name').value;
     const bizPhone = document.getElementById('biz-phone').value;
+    const bizBio = document.getElementById('biz-bio') ? document.getElementById('biz-bio').value : ""; // NEW: Get Bio
     const slug = generateSlug(bizName);
 
     if (!bizName || !bizPhone) return alert("Please fill all fields");
@@ -172,6 +173,7 @@ async function saveStoreSettings() {
         await db.collection("stores").doc(user.uid).set({
             storeName: bizName,
             whatsapp: bizPhone,
+            storeBio: bizBio, // NEW: Save Bio to DB
             slug: slug,
             ownerId: user.uid,
             visits: 0, 
@@ -182,6 +184,19 @@ async function saveStoreSettings() {
         checkStoreExists(user);
     } catch (error) {
         alert(error.message);
+    }
+}
+
+// NEW: FUNCTION TO UPDATE BIO SEPARATELY FROM DASHBOARD
+async function updateBio() {
+    const newBio = document.getElementById('biz-bio-edit').value;
+    try {
+        await db.collection("stores").doc(auth.currentUser.uid).update({ 
+            storeBio: newBio 
+        });
+        alert("Business Bio Updated!");
+    } catch (e) { 
+        alert("Error: " + e.message); 
     }
 }
 
@@ -211,6 +226,12 @@ async function checkStoreExists(user) {
         const profilePreview = document.getElementById('profile-preview');
         if (profilePreview) {
             profilePreview.src = data.profilePic || "https://via.placeholder.com/100";
+        }
+
+        // --- PRE-FILL BIO IN DASHBOARD EDIT BOX ---
+        const bioEditInput = document.getElementById('biz-bio-edit');
+        if (bioEditInput) {
+            bioEditInput.value = data.storeBio || "";
         }
 
         // Dynamic link generation for GitHub Pages
@@ -393,7 +414,7 @@ async function deleteProduct(id) {
     }
 }
 
-// --- PUBLIC STORE VIEW LOGIC (UPDATED WITH PROFILE PIC & CUSTOMER DATA) ---
+// --- PUBLIC STORE VIEW LOGIC (UPDATED WITH PROFILE PIC & BIO & CUSTOMER DATA) ---
 
 let allProducts = []; 
 
@@ -412,6 +433,12 @@ async function loadPublicStore() {
     const storeData = storeDoc.data();
     document.getElementById('display-store-name').innerText = storeData.storeName;
     document.title = storeData.storeName + " - SebastianHub";
+
+    // --- DISPLAY SELLER BIO ---
+    const bioDisplay = document.getElementById('display-store-bio');
+    if (bioDisplay) {
+        bioDisplay.innerText = storeData.storeBio || "Welcome to my store!";
+    }
 
     // --- DISPLAY SELLER PROFILE IMAGE ---
     const storeProfileImg = document.getElementById('store-profile-img');
