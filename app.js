@@ -42,18 +42,18 @@ function toggleAuth() {
     const title = document.getElementById('auth-title');
     const btn = document.getElementById('auth-btn');
     const toggle = document.getElementById('toggle-text');
-    const terms = document.getElementById('terms-container'); // NEW: Get the terms container
+    const terms = document.getElementById('terms-container'); 
 
     if (isLoginMode) {
         title.innerText = "Login to Store";
         btn.innerText = "Login";
         toggle.innerHTML = "New seller? <strong>Create account</strong>";
-        if(terms) terms.style.display = "none"; // Hide checkbox on login
+        if(terms) terms.style.display = "none"; 
     } else {
         title.innerText = "Create Store Account";
         btn.innerText = "Sign Up";
         toggle.innerHTML = "Already a seller? <strong>Login here</strong>";
-        if(terms) terms.style.display = "flex"; // Show checkbox on signup
+        if(terms) terms.style.display = "flex"; 
     }
 }
 
@@ -63,7 +63,6 @@ async function handleAuth() {
     const password = document.getElementById('password').value;
     const termsCheckbox = document.getElementById('terms-checkbox');
 
-    // NEW: Check if terms are accepted only during Sign Up
     if (!isLoginMode && termsCheckbox && !termsCheckbox.checked) {
         return alert("You must agree to the Terms & Conditions to create a store.");
     }
@@ -97,7 +96,7 @@ async function handleAuth() {
     }
 }
 
-// --- NEW: PASSWORD RESET & RESEND VERIFICATION ---
+// --- PASSWORD RESET & RESEND VERIFICATION ---
 async function forgotPassword() {
     const email = document.getElementById('email').value;
     if (!email) return alert("Please enter your email address first.");
@@ -125,11 +124,10 @@ async function resendVerification() {
     }
 }
 
-// 5. PROTECT THE DASHBOARD (UPDATED GATEKEEPER)
+// 5. PROTECT THE DASHBOARD
 auth.onAuthStateChanged((user) => {
     if (user) {
         if (!user.emailVerified) {
-            // Force logout if they try to bypass verification
             auth.signOut();
             if (!window.location.pathname.includes("index.html")) {
                 window.location.href = "index.html";
@@ -164,7 +162,7 @@ async function saveStoreSettings() {
     const user = auth.currentUser;
     const bizName = document.getElementById('biz-name').value;
     const bizPhone = document.getElementById('biz-phone').value;
-    const bizBio = document.getElementById('biz-bio') ? document.getElementById('biz-bio').value : ""; // NEW: Get Bio
+    const bizBio = document.getElementById('biz-bio') ? document.getElementById('biz-bio').value : ""; 
     const slug = generateSlug(bizName);
 
     if (!bizName || !bizPhone) return alert("Please fill all fields");
@@ -173,11 +171,12 @@ async function saveStoreSettings() {
         await db.collection("stores").doc(user.uid).set({
             storeName: bizName,
             whatsapp: bizPhone,
-            storeBio: bizBio, // NEW: Save Bio to DB
+            storeBio: bizBio, 
             slug: slug,
             ownerId: user.uid,
             visits: 0, 
-            profilePic: "https://via.placeholder.com/100", // Default profile pic
+            isSuspended: false, 
+            profilePic: "https://via.placeholder.com/100", 
             createdAt: new Date()
         });
         alert("Store setup complete!");
@@ -187,7 +186,6 @@ async function saveStoreSettings() {
     }
 }
 
-// NEW: FUNCTION TO UPDATE BIO SEPARATELY FROM DASHBOARD
 async function updateBio() {
     const newBio = document.getElementById('biz-bio-edit').value;
     try {
@@ -200,7 +198,6 @@ async function updateBio() {
     }
 }
 
-// --- ADDED: FUNCTION TO UPDATE WHATSAPP NUMBER SEPARATELY ---
 async function updateWhatsApp() {
     const newPhone = document.getElementById('biz-phone-edit').value;
     if(!newPhone) return alert("Please enter a valid number");
@@ -219,7 +216,6 @@ async function checkStoreExists(user) {
     const storeRef = db.collection("stores").doc(user.uid);
     const doc = await storeRef.get();
 
-    // ADMIN CHECK: Show a link to admin.html if the user is you
     if (user.email === "precioussebastian70@gmail.com") {
         const adminLink = document.getElementById('admin-link');
         if (adminLink) adminLink.style.display = "block";
@@ -229,39 +225,61 @@ async function checkStoreExists(user) {
         const data = doc.data();
         document.getElementById('setup-section').style.display = 'none';
         document.getElementById('manage-section').style.display = 'block';
+
+        // --- ADDED: DASHBOARD SUSPENSION WARNING ---
+        const manageSection = document.getElementById('manage-section');
+        const existingWarning = document.getElementById('suspension-warning');
+        if (data.isSuspended) {
+            if (!existingWarning) {
+                const warningDiv = document.createElement('div');
+                warningDiv.id = "suspension-warning";
+                warningDiv.style = "background:#ffeded; border:1px solid #ff4d4d; color:#cc0000; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center; font-weight:bold;";
+                warningDiv.innerHTML = `
+                    ⚠️ Your store is currently SUSPENDED.<br>
+                    <span style="font-size:12px; font-weight:normal;">Your public link is hidden. Please contact support to resolve this.</span>
+                `;
+                manageSection.prepend(warningDiv);
+            }
+            const statusText = document.getElementById('store-status-text');
+            if (statusText) {
+                statusText.innerText = "Suspended";
+                statusText.style.color = "red";
+            }
+        } else {
+            if (existingWarning) existingWarning.remove();
+            const statusText = document.getElementById('store-status-text');
+            if (statusText) {
+                statusText.innerText = "Active";
+                statusText.style.color = "#3498db";
+            }
+        }
         
-        // --- DISPLAY VISITOR COUNT ON DASHBOARD ---
         const visitCounter = document.getElementById('visit-count');
         if (visitCounter) {
             visitCounter.innerText = data.visits || 0;
         }
 
-        // --- DISPLAY SELLER PROFILE PIC PREVIEW ---
         const profilePreview = document.getElementById('profile-preview');
         if (profilePreview) {
             profilePreview.src = data.profilePic || "https://via.placeholder.com/100";
         }
 
-        // --- PRE-FILL BIO IN DASHBOARD EDIT BOX ---
         const bioEditInput = document.getElementById('biz-bio-edit');
         if (bioEditInput) {
             bioEditInput.value = data.storeBio || "";
         }
 
-        // --- ADDED: PRE-FILL WHATSAPP IN DASHBOARD EDIT BOX ---
         const phoneEditInput = document.getElementById('biz-phone-edit');
         if (phoneEditInput) {
             phoneEditInput.value = data.whatsapp || "";
         }
 
-        // Dynamic link generation for GitHub Pages
         const publicLink = window.location.origin + window.location.pathname.replace("dashboard.html", "store.html") + "?slug=" + data.slug;
         document.getElementById('store-url').innerText = publicLink;
         loadSellerProducts(data.slug); 
     }
 }
 
-// --- NEW: UPLOAD PROFILE PICTURE LOGIC ---
 async function uploadProfilePic() {
     const file = document.getElementById('profile-upload').files[0];
     if (!file) return alert("Select an image first");
@@ -289,14 +307,13 @@ async function uploadProfilePic() {
     toggleLoader(false);
 }
 
-// --- CUSTOMER PROFILE LOGIC (FOR STORE VIEW) ---
 function saveCustomerProfile() {
     const name = document.getElementById('cust-name').value;
     const address = document.getElementById('cust-address').value;
     localStorage.setItem('customer_profile', JSON.stringify({ name, address }));
     alert("Profile saved! Your info will now be attached to your orders.");
     document.getElementById('profile-form').style.display = 'none';
-    renderProducts(allProducts); // Refresh links with customer data
+    renderProducts(allProducts); 
 }
 
 function getCustomerData() {
@@ -434,7 +451,7 @@ async function deleteProduct(id) {
     }
 }
 
-// --- PUBLIC STORE VIEW LOGIC (UPDATED WITH PROFILE PIC & BIO & CUSTOMER DATA) ---
+// --- PUBLIC STORE VIEW LOGIC ---
 
 let allProducts = []; 
 
@@ -451,22 +468,31 @@ async function loadPublicStore() {
     
     const storeDoc = storeQuery.docs[0];
     const storeData = storeDoc.data();
+
+    if (storeData.isSuspended) {
+        document.body.innerHTML = `
+            <div style="text-align:center; margin-top:100px; font-family:sans-serif; padding:20px;">
+                <h1 style="color:#e74c3c;">Store Unavailable</h1>
+                <p>This store has been temporarily suspended by SebastianHub for violating our terms.</p>
+                <a href="index.html" style="color:#25D366; text-decoration:none; font-weight:bold;">Return to Homepage</a>
+            </div>
+        `;
+        return;
+    }
+
     document.getElementById('display-store-name').innerText = storeData.storeName;
     document.title = storeData.storeName + " - SebastianHub";
 
-    // --- DISPLAY SELLER BIO ---
     const bioDisplay = document.getElementById('display-store-bio');
     if (bioDisplay) {
         bioDisplay.innerText = storeData.storeBio || "Welcome to my store!";
     }
 
-    // --- DISPLAY SELLER PROFILE IMAGE ---
     const storeProfileImg = document.getElementById('store-profile-img');
     if (storeProfileImg) {
         storeProfileImg.src = storeData.profilePic || "https://via.placeholder.com/100";
     }
 
-    // --- INCREMENT VISITOR COUNT ---
     db.collection("stores").doc(storeDoc.id).update({
         visits: firebase.firestore.FieldValue.increment(1)
     });
@@ -485,7 +511,6 @@ async function loadPublicStore() {
         allProducts.push({ id: doc.id, ...doc.data(), whatsapp: storeData.whatsapp });
     });
 
-    // Pre-fill Customer Profile if exists
     const customer = getCustomerData();
     if (customer) {
         if (document.getElementById('cust-name')) document.getElementById('cust-name').value = customer.name;
@@ -516,7 +541,6 @@ function renderProducts(products) {
     regularList.innerHTML = "";
     if(featuredList) featuredList.innerHTML = "";
 
-    // Get customer info for WA message
     const customer = getCustomerData();
     let customerString = "";
     if (customer && customer.name) {
@@ -538,7 +562,6 @@ function renderProducts(products) {
         const opacity = p.isSoldOut ? 'opacity: 0.6;' : '';
         const soldTag = p.isSoldOut ? '<div style="position:absolute; top:10px; right:10px; background:red; color:white; padding:5px 10px; border-radius:5px; font-weight:bold; font-size:12px; z-index:5;">SOLD OUT</div>' : '';
         
-        // Include customer string in WhatsApp text
         const waTextMsg = encodeURIComponent(`Hello, I'm interested in buying: ${p.name} (₦${p.price})${customerString}`);
         const waLink = p.isSoldOut ? '#' : `https://wa.me/${p.whatsapp}?text=${waTextMsg}`;
         
@@ -676,20 +699,25 @@ async function loadMasterList() {
         snapshot.forEach(doc => {
             const store = doc.data();
             const count = reportCounts[store.slug] || 0; 
+            const isSuspended = store.isSuspended || false;
             const tr = document.createElement('tr');
             tr.style.borderBottom = "1px solid #eee";
             
             const reportStyle = count > 0 ? "color: red; font-weight: bold;" : "color: #888;";
+            const suspendBtnText = isSuspended ? "Un-Ban" : "Ban Store";
+            const suspendBtnColor = isSuspended ? "#27ae60" : "#f39c12";
 
             tr.innerHTML = `
                 <td style="padding: 10px;">${store.storeName}</td>
                 <td style="padding: 10px;">${store.whatsapp}</td>
                 <td style="padding: 10px;">
-                    ${store.isVerified ? '<span style="color:green;">Verified ✅</span>' : '<span style="color:orange;">Pending</span>'}
+                    ${store.isVerified ? '<span style="color:green;">Verified ✅</span>' : '<span style="color:orange;">Pending</span>'}<br>
+                    ${isSuspended ? '<span style="color:red; font-size:10px;">SUSPENDED</span>' : '<span style="color:green; font-size:10px;">ACTIVE</span>'}
                 </td>
                 <td style="padding: 10px; ${reportStyle}">${count} Reports</td>
                 <td style="padding: 10px;">
                     <button onclick="adminVerifyStore('${doc.id}')" style="font-size: 10px; padding: 5px; width: auto; background: #3498db; margin-right:5px;">Verify</button>
+                    <button onclick="adminToggleSuspension('${doc.id}', ${isSuspended})" style="font-size: 10px; padding: 5px; width: auto; background: ${suspendBtnColor}; margin-right:5px;">${suspendBtnText}</button>
                     <button onclick="adminDeleteStore('${doc.id}')" style="font-size: 10px; padding: 5px; width: auto; background: #e74c3c;">Delete</button>
                 </td>
             `;
@@ -697,6 +725,21 @@ async function loadMasterList() {
         });
     } catch (error) {
         alert("Database Error: " + error.message);
+    }
+}
+
+async function adminToggleSuspension(storeId, currentStatus) {
+    const action = currentStatus ? "un-suspend" : "suspend";
+    if (confirm(`Are you sure you want to ${action} this store?`)) {
+        try {
+            await db.collection("stores").doc(storeId).update({ 
+                isSuspended: !currentStatus 
+            });
+            alert(`Store ${action}ed successfully.`);
+            loadMasterList(); 
+        } catch (e) {
+            alert("Error: " + e.message);
+        }
     }
 }
 
@@ -725,9 +768,7 @@ if (window.location.pathname.includes("admin.html")) {
 function toggleDarkMode() {
     const body = document.body;
     const btn = document.getElementById('dark-mode-toggle');
-    
     body.classList.toggle('dark-mode');
-    
     const isDark = body.classList.contains('dark-mode');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     if (btn) btn.innerText = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
