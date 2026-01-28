@@ -140,6 +140,7 @@ auth.onAuthStateChanged((user) => {
         }
         if (window.location.pathname.includes("dashboard.html")) {
             checkStoreExists(user);
+            listenForGlobalMessages(); // Start listening for Admin messages
         }
     } else {
         if (window.location.pathname.includes("dashboard.html") || window.location.pathname.includes("admin.html")) {
@@ -147,6 +148,50 @@ auth.onAuthStateChanged((user) => {
         }
     }
 });
+
+// --- NEW: GLOBAL MESSAGE LOGIC ---
+function listenForGlobalMessages() {
+    db.collection("settings").doc("announcement").onSnapshot((doc) => {
+        const msgArea = document.getElementById('global-announcement-area');
+        if (doc.exists && doc.data().message && msgArea) {
+            msgArea.style.display = "block";
+            const timeStr = doc.data().timestamp ? timeAgo(doc.data().timestamp) : "";
+            msgArea.innerHTML = `
+                <div style="background:#e8f4fd; border-left:5px solid #3498db; padding:15px; margin-bottom:20px; border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <strong style="color:#2c3e50;">📢 Admin Announcement</strong>
+                        <span style="font-size:10px; color:#7f8c8d;">${timeStr}</span>
+                    </div>
+                    <p style="margin:0; color:#34495e; font-size:14px; line-height:1.4;">${doc.data().message}</p>
+                </div>`;
+        } else if (msgArea) {
+            msgArea.style.display = "none";
+        }
+    });
+}
+
+// --- NEW: ADMIN ANNOUNCEMENT FUNCTIONS ---
+async function sendGlobalMessage() {
+    const msg = document.getElementById('global-msg-input').value;
+    if (!msg) return alert("Please type a message first.");
+    try {
+        await db.collection("settings").doc("announcement").set({ 
+            message: msg, 
+            timestamp: new Date() 
+        });
+        alert("Announcement Published to all sellers!");
+        document.getElementById('global-msg-input').value = "";
+    } catch (e) { alert("Error: " + e.message); }
+}
+
+async function clearGlobalMessage() {
+    if(confirm("Are you sure you want to remove the announcement for everyone?")) {
+        try {
+            await db.collection("settings").doc("announcement").delete();
+            alert("Announcement Removed.");
+        } catch (e) { alert("Error: " + e.message); }
+    }
+}
 
 // --- DASHBOARD LOGIC ---
 
@@ -740,6 +785,14 @@ async function adminToggleSuspension(storeId, currentStatus) {
         } catch (e) {
             alert("Error: " + e.message);
         }
+    }
+}
+
+async function adminVerifyStore(storeId) {
+    if (confirm("Confirm verification for this store?")) {
+        await db.collection("stores").doc(storeId).update({ isVerified: true });
+        alert("Store Verified!");
+        loadMasterList();
     }
 }
 
