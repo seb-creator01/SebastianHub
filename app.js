@@ -200,6 +200,20 @@ async function updateBio() {
     }
 }
 
+// --- ADDED: FUNCTION TO UPDATE WHATSAPP NUMBER SEPARATELY ---
+async function updateWhatsApp() {
+    const newPhone = document.getElementById('biz-phone-edit').value;
+    if(!newPhone) return alert("Please enter a valid number");
+    try {
+        await db.collection("stores").doc(auth.currentUser.uid).update({ 
+            whatsapp: newPhone 
+        });
+        alert("WhatsApp Number Updated!");
+    } catch (e) { 
+        alert("Error: " + e.message); 
+    }
+}
+
 async function checkStoreExists(user) {
     if (!user) return;
     const storeRef = db.collection("stores").doc(user.uid);
@@ -232,6 +246,12 @@ async function checkStoreExists(user) {
         const bioEditInput = document.getElementById('biz-bio-edit');
         if (bioEditInput) {
             bioEditInput.value = data.storeBio || "";
+        }
+
+        // --- ADDED: PRE-FILL WHATSAPP IN DASHBOARD EDIT BOX ---
+        const phoneEditInput = document.getElementById('biz-phone-edit');
+        if (phoneEditInput) {
+            phoneEditInput.value = data.whatsapp || "";
         }
 
         // Dynamic link generation for GitHub Pages
