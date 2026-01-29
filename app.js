@@ -57,7 +57,7 @@ function toggleAuth() {
     }
 }
 
-// 4. HANDLE SIGNUP AND LOGIN (UPDATED FOR VERIFICATION AND TERMS)
+// 4. HANDLE SIGNUP AND LOGIN (UPDATED FOR VERIFICATION AND TERMS + LOADER)
 async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -71,12 +71,16 @@ async function handleAuth() {
         return alert("Please fill in all fields.");
     }
 
+    // --- START LOADER ---
+    toggleLoader(true);
+
     try {
         if (isLoginMode) {
             const userCredential = await auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
 
             if (!user.emailVerified) {
+                toggleLoader(false); // Stop loader to show alert
                 alert("Please verify your email before logging in. Check your inbox.");
                 await auth.signOut();
                 return;
@@ -85,6 +89,7 @@ async function handleAuth() {
         } else {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
             await userCredential.user.sendEmailVerification();
+            toggleLoader(false); // Stop loader to show alert
             alert("Account created! Please check your email and click the verification link before logging in.");
             await auth.signOut();
             location.reload();
@@ -92,6 +97,7 @@ async function handleAuth() {
         }
         window.location.href = "dashboard.html";
     } catch (error) {
+        toggleLoader(false); // Stop loader on error
         alert("Error: " + error.message);
     }
 }
@@ -785,14 +791,6 @@ async function adminToggleSuspension(storeId, currentStatus) {
         } catch (e) {
             alert("Error: " + e.message);
         }
-    }
-}
-
-async function adminVerifyStore(storeId) {
-    if (confirm("Confirm verification for this store?")) {
-        await db.collection("stores").doc(storeId).update({ isVerified: true });
-        alert("Store Verified!");
-        loadMasterList();
     }
 }
 
